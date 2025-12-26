@@ -131,11 +131,6 @@ resource "aws_cloudfront_function" "directory_index" {
   comment = "Rewrites directory requests to index.html for ${var.domain_name}"
   publish = true
   code    = file("${path.module}/cloudfront-function.js")
-
-  tags = merge(var.tags, {
-    Name   = "Directory Index Function"
-    Domain = var.domain_name
-  })
 }
 
 # CloudFront distribution
