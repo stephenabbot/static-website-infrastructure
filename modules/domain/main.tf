@@ -124,6 +124,20 @@ resource "aws_cloudfront_origin_access_control" "website" {
   signing_protocol                  = "sigv4"
 }
 
+# CloudFront function for directory index handling
+resource "aws_cloudfront_function" "directory_index" {
+  name    = "${local.domain_safe}-directory-index-${var.environment}"
+  runtime = "cloudfront-js-1.0"
+  comment = "Rewrites directory requests to index.html for ${var.domain_name}"
+  publish = true
+  code    = file("${path.module}/cloudfront-function.js")
+
+  tags = merge(var.tags, {
+    Name   = "Directory Index Function"
+    Domain = var.domain_name
+  })
+}
+
 # CloudFront distribution
 resource "aws_cloudfront_distribution" "website" {
   origin {
@@ -153,13 +167,18 @@ resource "aws_cloudfront_distribution" "website" {
       }
     }
 
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.directory_index.arn
+    }
+
     min_ttl     = 0
     default_ttl = 86400
     max_ttl     = 31536000
   }
 
   custom_error_response {
-    error_code         = 404
+    error_code         = "4xx"
     response_code      = 200
     response_page_path = "/index.html"
   }

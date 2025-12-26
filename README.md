@@ -44,6 +44,12 @@ The project uses OpenTofu to deploy complete static website infrastructure for m
 
 Each domain receives dedicated infrastructure including an S3 bucket with versioning and encryption, a CloudFront distribution with Origin Access Control, an ACM certificate with DNS validation, and Route53 hosted zone with DNS records. All resources follow consistent naming patterns and include comprehensive tagging for management and cost allocation.
 
+**CloudFront Directory Index Handling:**
+A CloudFront Function automatically rewrites directory requests to serve index.html files, enabling clean URLs for static sites. The function transforms requests like `/work/` to `/work/index.html` and `/about` to `/about/index.html`, mimicking traditional web server behavior. This allows static site generators like Astro to create nested page structures without requiring infrastructure updates for each new page or directory.
+
+**Error Handling:**
+All 4xx client errors (403 Forbidden, 404 Not Found, etc.) are automatically redirected to the homepage with a 200 status code, providing a user-friendly experience when users navigate to non-existent pages or encounter access issues.
+
 SSL certificates are automatically validated using DNS records created in the Route53 hosted zone. CloudFront distributions are configured with security headers, compression, and HTTP-to-HTTPS redirects. S3 buckets are secured with public access blocks and bucket policies that only allow CloudFront access.
 
 Infrastructure outputs are published to SSM Parameter Store at predictable paths, enabling content management projects to discover bucket names, distribution IDs, and other resource identifiers without hardcoding values. This loose coupling allows infrastructure and content projects to evolve independently.
@@ -62,12 +68,14 @@ For each domain-environment combination, the following resources are created:
 
 - S3 bucket for static website storage with versioning, encryption, and public access blocks
 - CloudFront distribution with Origin Access Control, compression, and security headers
+- CloudFront Function for directory index handling (rewrites `/work/` to `/work/index.html`)
 - ACM certificate for SSL/TLS with DNS validation through Route53
 - Route53 hosted zone with A and AAAA records pointing to CloudFront
 - Route53 domain registration with automatic nameserver updates
 - S3 bucket policy allowing CloudFront access while blocking direct public access
 - Coming soon page uploaded to S3 bucket as placeholder content
 - SSM parameters publishing bucket names, distribution IDs, and certificate ARNs
+- Custom error responses redirecting all 4xx errors to the homepage
 
 All resources include comprehensive tags for cost allocation, ownership tracking, and resource management. Bucket names incorporate domain names and environments for uniqueness. CloudFront distributions are configured for optimal performance with PriceClass_100 covering US and Europe.
 
