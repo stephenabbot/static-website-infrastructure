@@ -28,7 +28,7 @@ echo "Step 2: Checking for project deployment role..."
 PROJECT_NAME=$(git remote get-url origin 2>/dev/null | sed -E 's|.*github\.com[:/][^/]+/([^/.]+)(\.git)?$|\1|' || echo "")
 
 if [ -z "$PROJECT_NAME" ]; then
-  echo "⚠️  Could not determine project name from git remote"
+  echo -e "${YELLOW}⚠${NC} Could not determine project name from git remote"
   echo "  Using current credentials"
 else
   echo "  Project name: $PROJECT_NAME"
@@ -37,21 +37,21 @@ else
   PROJECT_ROLE_ARN=$(aws ssm get-parameter --region us-east-1 --name "/deployment-roles/${PROJECT_NAME}/role-arn" --query Parameter.Value --output text 2>/dev/null || echo "")
 
   if [ -n "$PROJECT_ROLE_ARN" ]; then
-    echo "✓ Project deployment role found: $PROJECT_ROLE_ARN"
+    echo -e "${GREEN}✓${NC} Project deployment role found: $PROJECT_ROLE_ARN"
     echo "  Attempting to assume role for deployment..."
 
     if TEMP_CREDS=$(aws sts assume-role --role-arn "$PROJECT_ROLE_ARN" --role-session-name "${PROJECT_NAME}-deploy-$(date +%s)" --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text 2>/dev/null); then
       export AWS_ACCESS_KEY_ID=$(echo "$TEMP_CREDS" | cut -f1)
       export AWS_SECRET_ACCESS_KEY=$(echo "$TEMP_CREDS" | cut -f2)
       export AWS_SESSION_TOKEN=$(echo "$TEMP_CREDS" | cut -f3)
-      echo "✓ Successfully assumed project deployment role"
+      echo -e "${GREEN}✓${NC} Successfully assumed project deployment role"
     else
-      echo "⚠️  Failed to assume project role, using current credentials"
+      echo -e "${YELLOW}⚠${NC} Failed to assume project role, using current credentials"
       echo "  This is normal for local development with admin credentials"
       echo "  For GitHub Actions, ensure OIDC is configured correctly"
     fi
   else
-    echo "ℹ️  Project deployment role not found at /deployment-roles/${PROJECT_NAME}/role-arn"
+    echo -e "${BLUE}ℹ${NC} Project deployment role not found at /deployment-roles/${PROJECT_NAME}/role-arn"
     echo "  Using current credentials"
     echo "  To create a deployment role, run terraform-aws-deployment-roles"
   fi
@@ -66,7 +66,7 @@ STATE_BUCKET=$(aws ssm get-parameter --region us-east-1 --name "/terraform/found
 DYNAMODB_TABLE=$(aws ssm get-parameter --region us-east-1 --name "/terraform/foundation/dynamodb-lock-table" --query Parameter.Value --output text 2>/dev/null || echo "")
 
 if [ -z "$STATE_BUCKET" ] || [ -z "$DYNAMODB_TABLE" ]; then
-  echo "❌ Foundation backend configuration not found"
+  echo -e "${RED}✗${NC} Foundation backend configuration not found"
   echo "  Deploy terraform-aws-cfn-foundation first"
   exit 1
 fi
@@ -75,7 +75,7 @@ fi
 GITHUB_REPO=$(git remote get-url origin 2>/dev/null | sed 's/.*github\.com[:/]\([^/]*\/[^/.]*\).*/\1/' || echo "unknown/unknown")
 BACKEND_KEY="static-website-infrastructure/$(echo "$GITHUB_REPO" | tr '/' '-')/terraform.tfstate"
 
-echo "✓ Backend configuration:"
+echo -e "${GREEN}✓${NC} Backend configuration:"
 echo "  Bucket: $STATE_BUCKET"
 echo "  DynamoDB: $DYNAMODB_TABLE"
 echo "  Key: $BACKEND_KEY"
@@ -131,7 +131,7 @@ if [ -f infrastructure-outputs.json ]; then
 fi
 
 echo ""
-echo "✅ DEPLOYMENT COMPLETE"
+echo -e "${GREEN}✅ DEPLOYMENT COMPLETE${NC}"
 echo ""
 echo "📋 Summary:"
 echo "  • All domain infrastructure deployed successfully"

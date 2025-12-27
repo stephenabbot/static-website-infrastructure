@@ -18,23 +18,20 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-print_status() { echo -e "${BLUE}[INFO]${NC} $1"; }
-print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+print_status() { echo -e "${BLUE}ℹ${NC} $1"; }
 
 echo "🚨 DESTROY DOMAIN INFRASTRUCTURE 🚨"
 echo ""
-print_warning "This will PERMANENTLY DELETE all domain infrastructure!"
+echo -e "${YELLOW}⚠${NC} This will PERMANENTLY DELETE all domain infrastructure!"
 echo ""
-print_warning "This includes:"
+echo -e "${YELLOW}⚠${NC} This includes:"
 echo "  • S3 buckets and all content"
 echo "  • CloudFront distributions"
 echo "  • Route53 hosted zones and DNS records"
 echo "  • ACM certificates"
 echo "  • All SSM parameters"
 echo ""
-print_error "THIS ACTION CANNOT BE UNDONE!"
+echo -e "${RED}✗${NC} THIS ACTION CANNOT BE UNDONE!"
 echo ""
 
 # Confirmation prompt
@@ -60,7 +57,7 @@ echo "Step 2: Checking for project deployment role..."
 PROJECT_NAME=$(git remote get-url origin 2>/dev/null | sed -E 's|.*github\.com[:/][^/]+/([^/.]+)(\.git)?$|\1|' || echo "")
 
 if [ -z "$PROJECT_NAME" ]; then
-  print_warning "Could not determine project name from git remote"
+  echo -e "${YELLOW}⚠${NC} Could not determine project name from git remote"
   print_status "Using current credentials"
 else
   print_status "Project name: $PROJECT_NAME"
@@ -75,9 +72,9 @@ else
       export AWS_ACCESS_KEY_ID=$(echo "$TEMP_CREDS" | cut -f1)
       export AWS_SECRET_ACCESS_KEY=$(echo "$TEMP_CREDS" | cut -f2)
       export AWS_SESSION_TOKEN=$(echo "$TEMP_CREDS" | cut -f3)
-      print_success "Successfully assumed project deployment role"
+      echo -e "${GREEN}✓${NC} Successfully assumed project deployment role"
     else
-      print_warning "Failed to assume project role, using current credentials"
+      echo -e "${YELLOW}⚠${NC} Failed to assume project role, using current credentials"
       print_status "This is normal for local development with admin credentials"
     fi
   else
@@ -94,7 +91,7 @@ STATE_BUCKET=$(aws ssm get-parameter --region us-east-1 --name "/terraform/found
 DYNAMODB_TABLE=$(aws ssm get-parameter --region us-east-1 --name "/terraform/foundation/dynamodb-lock-table" --query Parameter.Value --output text 2>/dev/null || echo "")
 
 if [ -z "$STATE_BUCKET" ] || [ -z "$DYNAMODB_TABLE" ]; then
-  print_error "Foundation backend configuration not found"
+  echo -e "${RED}✗${NC} Foundation backend configuration not found"
   exit 1
 fi
 
@@ -157,9 +154,9 @@ echo "Step 8: Cleaning up local files..."
 rm -f tfplan destroy-plan infrastructure-outputs.json
 
 echo ""
-print_success "DESTRUCTION COMPLETE"
+echo -e "${GREEN}✓${NC} DESTRUCTION COMPLETE"
 echo ""
-print_warning "Manual cleanup may be required for:"
-print_warning "  • S3 bucket contents (if versioning was enabled)"
-print_warning "  • Route53 hosted zone NS records in parent domain"
-print_warning "  • Any external DNS configurations"
+echo -e "${YELLOW}⚠${NC} Manual cleanup may be required for:"
+echo -e "${YELLOW}⚠${NC}   • S3 bucket contents (if versioning was enabled)"
+echo -e "${YELLOW}⚠${NC}   • Route53 hosted zone NS records in parent domain"
+echo -e "${YELLOW}⚠${NC}   • Any external DNS configurations"
