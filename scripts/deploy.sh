@@ -11,18 +11,23 @@ cd "$PROJECT_ROOT"
 # Disable AWS CLI pager
 export AWS_PAGER=""
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
 echo "🚀 DEPLOYING ALL DOMAIN INFRASTRUCTURE 🚀"
 echo ""
 echo "This will deploy infrastructure for all configured domains using a single Terraform configuration"
 echo ""
 
 # Verify prerequisites
-echo "Step 1: Verifying prerequisites..."
 ./scripts/verify-prerequisites.sh || exit 1
 
-# Step 2: Check for project deployment role and assume if available
+# Check for project deployment role and assume if available
 echo ""
-echo "Step 2: Checking for project deployment role..."
 
 # Extract project name from git remote URL
 PROJECT_NAME=$(git remote get-url origin 2>/dev/null | sed -E 's|.*github\.com[:/][^/]+/([^/.]+)(\.git)?$|\1|' || echo "")
@@ -57,9 +62,8 @@ else
   fi
 fi
 
-# Step 3: Configure Terraform backend
+# Configure Terraform backend
 echo ""
-echo "Step 3: Configuring Terraform backend..."
 
 # Get backend configuration from foundation
 STATE_BUCKET=$(aws ssm get-parameter --region us-east-1 --name "/terraform/foundation/s3-state-bucket" --query Parameter.Value --output text 2>/dev/null || echo "")
@@ -80,9 +84,8 @@ echo "  Bucket: $STATE_BUCKET"
 echo "  DynamoDB: $DYNAMODB_TABLE"
 echo "  Key: $BACKEND_KEY"
 
-# Step 4: Initialize Terraform
+# Initialize Terraform
 echo ""
-echo "Step 4: Initializing Terraform..."
 
 # Clear any stale DynamoDB locks before initialization
 aws dynamodb scan --table-name "$DYNAMODB_TABLE" --filter-expression "contains(LockID, :key)" --expression-attribute-values "{\":key\":{\"S\":\"$BACKEND_KEY\"}}" --query 'Items[].LockID.S' --output text 2>/dev/null | tr '\t' '\n' | while read -r lock_id; do
@@ -98,19 +101,16 @@ tofu init -reconfigure \
     -backend-config="key=$BACKEND_KEY" \
     -backend-config="region=us-east-1"
 
-# Step 5: Plan deployment
+# Plan deployment
 echo ""
-echo "Step 5: Planning deployment..."
 tofu plan -out=tfplan
 
-# Step 6: Apply deployment
+# Apply deployment
 echo ""
-echo "Step 6: Applying deployment..."
 tofu apply tfplan
 
-# Step 7: Generate outputs and store in SSM
+# Generate outputs and store in SSM
 echo ""
-echo "Step 7: Generating outputs and storing in SSM..."
 
 # Generate outputs JSON (this will be gitignored)
 tofu output -json > infrastructure-outputs.json
